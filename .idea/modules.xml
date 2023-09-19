@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/ISEC.iml" filepath="$PROJECT_DIR$/.idea/ISEC.iml" />
+      <module fileurl="file://$USER_HOME$/Documents/Work/notifier/.idea/notifier.iml" filepath="$USER_HOME$/Documents/Work/notifier/.idea/notifier.iml" />
     </modules>
   </component>
 </project>

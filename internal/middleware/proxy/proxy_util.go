@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	repo "ISEC/internal/api/repository"
+	"ISEC/internal/middleware/utils"
 	"io"
 	"log"
 	"net/http"
@@ -41,20 +43,44 @@ func writeResponse(w http.ResponseWriter, r *http.Response) {
 }
 
 type Proxy struct {
+	ProxyRepo *repo.ProxyRepo
+}
+
+func ProcessRequest(w http.ResponseWriter, r *http.Request, client http.Client) error {
+	res, err := client.Do(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+
+	log.Println(r.RemoteAddr, " ", res.Status)
+
+	writeResponse(w, res)
+
+	return nil
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.RemoteAddr, " ", r.Method, " ", r.URL)
 
-	deleteHopByHopHeaders(r.Header)
+	httpClient := http.Client{}
 
-	response, err := http.DefaultTransport.RoundTrip(r)
-	if err != nil {
-		log.Fatal("ServeHTTP error:", err)
+	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
 	}
-	defer response.Body.Close()
 
-	log.Println(r.RemoteAddr, " ", response.Status)
+	deleteHopByHopHeaders(r.Header)
+	r.RequestURI = ""
 
-	writeResponse(w, response)
+	requestStruct, err := utils.ConvertRequestToStruct(r)
+	if err != nil {
+		log.Fatal("convert request error:", err)
+	}
+	if err = p.ProxyRepo.AddRequest(r.Context(), requestStruct); err != nil {
+		log.Fatal("convert request error:", err)
+	}
+
+	if err := ProcessRequest(w, r, httpClient); err != nil {
+		log.Fatal("Error during processing request:", err)
+	}
 }
